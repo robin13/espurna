@@ -201,6 +201,13 @@ void _sensorWebSocketStart(JsonObject& root) {
             }
         #endif
 
+        #if PULSEMETER_SUPPORT
+            if (sensor->getID() == SENSOR_PULSEMETER_ID) {
+                root["pmVisible"] = 1;
+                root["pwrRatioE"] = ((PulseMeterSensor *) sensor)->getEnergyRatio();
+            }
+        #endif
+
     }
 
     if (_magnitudes.size() > 0) {
@@ -425,6 +432,14 @@ void _sensorLoad() {
     }
     #endif
 
+    #if BMP180_SUPPORT
+    {
+        BMP180Sensor * sensor = new BMP180Sensor();
+        sensor->setAddress(BMP180_ADDRESS);
+        _sensors.push_back(sensor);
+    }
+    #endif
+
     #if BMX280_SUPPORT
     {
         BMX280Sensor * sensor = new BMX280Sensor();
@@ -624,24 +639,6 @@ void _sensorLoad() {
     }
     #endif
 
-    #if SENSEAIR_SUPPORT
-    {
-        SenseAirSensor * sensor = new SenseAirSensor();
-        sensor->setRX(SENSEAIR_RX_PIN);
-        sensor->setTX(SENSEAIR_TX_PIN);
-        _sensors.push_back(sensor);
-    }
-    #endif
-
-    #if SDS011_SUPPORT
-    {
-        SDS011Sensor * sensor = new SDS011Sensor();
-        sensor->setRX(SDS011_RX_PIN);
-        sensor->setTX(SDS011_TX_PIN);
-        _sensors.push_back(sensor);
-    }
-    #endif
-
     #if PMSX003_SUPPORT
     {
         PMSX003Sensor * sensor = new PMSX003Sensor();
@@ -652,6 +649,16 @@ void _sensorLoad() {
             sensor->setSerial(& PMS_HW_PORT);
         #endif
         sensor->setType(PMS_TYPE);
+        _sensors.push_back(sensor);
+    }
+    #endif
+
+    #if PULSEMETER_SUPPORT
+    {
+        PulseMeterSensor * sensor = new PulseMeterSensor();
+        sensor->setGPIO(PULSEMETER_PIN);
+        sensor->setEnergyRatio(PULSEMETER_ENERGY_RATIO);
+        sensor->setDebounceTime(PULSEMETER_DEBOUNCE);
         _sensors.push_back(sensor);
     }
     #endif
@@ -672,6 +679,24 @@ void _sensorLoad() {
             float value = getSetting("pzEneTotal", dev, 0).toFloat();
             if (value > 0) sensor->resetEnergy(dev, value);
         }
+        _sensors.push_back(sensor);
+    }
+    #endif
+
+    #if SENSEAIR_SUPPORT
+    {
+        SenseAirSensor * sensor = new SenseAirSensor();
+        sensor->setRX(SENSEAIR_RX_PIN);
+        sensor->setTX(SENSEAIR_TX_PIN);
+        _sensors.push_back(sensor);
+    }
+    #endif
+
+    #if SDS011_SUPPORT
+    {
+        SDS011Sensor * sensor = new SDS011Sensor();
+        sensor->setRX(SDS011_RX_PIN);
+        sensor->setTX(SDS011_TX_PIN);
         _sensors.push_back(sensor);
     }
     #endif
@@ -709,6 +734,43 @@ void _sensorLoad() {
     }
     #endif
 
+    #if MAX6675_SUPPORT
+    {
+        MAX6675Sensor * sensor = new MAX6675Sensor();
+        sensor->setCS(MAX6675_CS_PIN);
+        sensor->setSO(MAX6675_SO_PIN);
+        sensor->setSCK(MAX6675_SCK_PIN);
+        _sensors.push_back(sensor);
+    }
+    #endif
+
+    #if VEML6075_SUPPORT
+    {
+        VEML6075Sensor * sensor = new VEML6075Sensor();
+        sensor->setIntegrationTime(VEML6075_INTEGRATION_TIME);
+        sensor->setDynamicMode(VEML6075_DYNAMIC_MODE);
+        _sensors.push_back(sensor);
+    }
+    #endif
+
+    #if VL53L1X_SUPPORT
+    {
+        VL53L1XSensor * sensor = new VL53L1XSensor();
+        sensor->setInterMeasurementPeriod(VL53L1X_INTER_MEASUREMENT_PERIOD);
+        sensor->setDistanceMode(VL53L1X_DISTANCE_MODE);
+        sensor->setMeasurementTimingBudget(VL53L1X_MEASUREMENT_TIMING_BUDGET);
+        _sensors.push_back(sensor);
+    }
+    #endif
+
+    #if EZOPH_SUPPORT
+    {
+        EZOPHSensor * sensor = new EZOPHSensor();
+        sensor->setRX(EZOPH_RX_PIN);
+        sensor->setTX(EZOPH_TX_PIN);
+        _sensors.push_back(sensor);
+    }
+    #endif
 }
 
 void _sensorCallback(unsigned char i, unsigned char type, double value) {
@@ -866,6 +928,13 @@ void _sensorInit() {
             }
 
         #endif // CSE7766_SUPPORT
+
+        #if PULSEMETER_SUPPORT
+            if (_sensors[i]->getID() == SENSOR_PULSEMETER_ID) {
+                PulseMeterSensor * sensor = (PulseMeterSensor *) _sensors[i];
+                sensor->setEnergyRatio(getSetting("pwrRatioE", PULSEMETER_ENERGY_RATIO).toInt());
+            }
+        #endif // PULSEMETER_SUPPORT
 
     }
 
@@ -1041,6 +1110,19 @@ void _sensorConfigure() {
             }
 
         #endif // CSE7766_SUPPORT
+
+        #if PULSEMETER_SUPPORT
+            if (_sensors[i]->getID() == SENSOR_PULSEMETER_ID) {
+                PulseMeterSensor * sensor = (PulseMeterSensor *) _sensors[i];
+                if (getSetting("pwrResetE", 0).toInt() == 1) {
+                    sensor->resetEnergy();
+                    delSetting("eneTotal");
+                    _sensorResetTS();
+                }
+
+                sensor->setEnergyRatio(getSetting("pwrRatioE", PULSEMETER_ENERGY_RATIO).toInt());
+            }
+        #endif // PULSEMETER_SUPPORT
 
         #if PZEM004T_SUPPORT
 
